@@ -10,7 +10,7 @@ import numpy as np
         
 IMG_SIZE = 224 # Specify height and width of image to match the input format of the model
 CHANNELS = 3 # Keep RGB color channels to match the input format of the model
-BATCH_SIZE = 256 # Big enough to measure an F1-score
+BATCH_SIZE = 56 # Big enough to measure an F1-score
 AUTOTUNE = tf.data.experimental.AUTOTUNE # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 SHUFFLE_BUFFER_SIZE = 1024 # Shuffle the training data by a chunck of 1024 observations
 
