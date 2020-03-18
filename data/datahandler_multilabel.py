@@ -8,13 +8,7 @@ Created on Wed Mar 11 16:51:41 2020
 import tensorflow as tf
 import numpy as np
         
-IMG_SIZE = 224 # Specify height and width of image to match the input format of the model
-CHANNELS = 3 # Keep RGB color channels to match the input format of the model
-BATCH_SIZE = 56 # Big enough to measure an F1-score
-AUTOTUNE = tf.data.experimental.AUTOTUNE # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
-SHUFFLE_BUFFER_SIZE = 1024 # Shuffle the training data by a chunck of 1024 observations
-
-def parse_function(filename, label):
+def parse_function(filename, label, CHANNELS = 3, IMG_SIZE = 224):
     """Function that returns a tuple of normalized image array and labels array.
     Args:
         filename: string representing path to image
@@ -31,7 +25,9 @@ def parse_function(filename, label):
     return image_normalized, label
 
 
-def create_dataset(filenames, labels, is_training=True):
+def create_dataset(filenames, labels, is_training=True, IMG_SIZE = 224, \
+                   CHANNELS = 3, BATCH_SIZE = 56, \
+                   AUTOTUNE = tf.data.experimental.AUTOTUNE, SHUFFLE_BUFFER_SIZE = 1024):
     """Load and parse dataset.
     Args:
         filenames: list of image paths
