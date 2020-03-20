@@ -1,5 +1,4 @@
-# Capstone
-## By Ludovica Schaerf
+# Capstone By Ludovica Schaerf
 
 ## Multi-label Hierarchical Classification of Paintings into their Represented Icon(s)
 
