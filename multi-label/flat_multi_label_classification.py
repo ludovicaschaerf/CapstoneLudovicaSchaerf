@@ -14,7 +14,7 @@ new_dataset = False
 #                    pretrained_fine_tuning,
 #                    out_of_the_box
 
-model_type = 'out_of_the_box'
+model_type = 'pretrained_fine_tuning'
 
 #saved options: True : continue training a saved model 
 #               False : start a new training
@@ -22,7 +22,7 @@ saved = False
 
 #pretrained options: VGG
 #                    ResNet
-#                    Inception
+#                    InceptionV3
 pretrained = 'VGG'
 
 # TensorFlow and tf.keras
@@ -185,7 +185,7 @@ if model_type == 'pretrained_fine_tuning':
     feature_extractor_layer[pretrained].trainable = True
     
     # Fine-tune from this layer onwards
-    fine_tune_at = 150
+    fine_tune_at = 6*len(feature_extractor_layer[pretrained].layers)//7
     
     # Freeze all the layers before the `fine_tune_at` layer
     for layer in feature_extractor_layer[pretrained].layers[:fine_tune_at]:
