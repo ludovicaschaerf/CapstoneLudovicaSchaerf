@@ -4,10 +4,27 @@ Created on Sun Mar 15 15:18:06 2020
 
 @author: Ludovica
 """
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-#! pip install tensorflow
+#new_dataset options: True : the dataset was downloaded recently so I need to filter it
+#                     False : the dataset in my computer is the same on filenames.pkl
+new_dataset = False
+
+#model_type options: pretrained_no_tuning
+#                    pretrained_fine_tuning,
+#                    out_of_the_box
+
+model_type = 'out_of_the_box'
+
+#saved options: True : continue training a saved model 
+#               False : start a new training
+saved = False
+
+#pretrained options: VGG
+#                    ResNet
+#                    Inception
+pretrained = 'VGG'
+
 # TensorFlow and tf.keras
 import tensorflow as tf
 from tensorflow import keras
@@ -30,7 +47,9 @@ import os
 from os import listdir
 from os.path import isfile, join
 import pickle
-#importing module
+
+#import modules
+from out_of_the_box import Dense, Convolution
 import sys
 sys.path.insert(0, '../data')
 from datahandler_multilabel import create_dataset
@@ -48,51 +67,47 @@ with open('../data/labels.pkl', 'rb') as infile2:
     labels = pickle.load(infile2)
     
 df = pd.concat([pd.Series(filenames, name='filenames'), pd.Series(labels, name='labels')], axis=1)
-df = shuffle(df)
+df = shuffle(df,)
 print(df.shape, df.columns)
 
-mypath = os.path.join('..','..','data_tate')
-onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))] 
+if new_dataset == True:
+    mypath = os.path.join('..','..','data_tate')
+    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))] 
 
-filenames1 = []
-labels1 = []
-for i,img_targ in enumerate(filenames):
-    img_targ0 = img_targ.split('\\')[-1]
-    if img_targ0 in onlyfiles:
-        filenames1.append(str(img_targ))
-        labels1.append(labels[i]) 
+    filenames1 = []
+    labels1 = []
+    for i,img_targ in enumerate(filenames):
+        img_targ0 = img_targ.split('\\')[-1]
+        if img_targ0 in onlyfiles:
+            filenames1.append(str(img_targ))
+            labels1.append(labels[i])
+    filenames = filenames1
+    labels = labels1
         
-df = pd.concat([pd.Series(filenames1, name='filenames'), pd.Series(labels1, name='labels')], axis=1)
-df = shuffle(df)
+df = pd.concat([pd.Series(filenames, name='filenames'), pd.Series(labels, name='labels')], axis=1)
+df = shuffle(df, random_state=42)
 print(df.shape, df.columns)
 
-#train test split
+#train test val split
 train_x = list(df['filenames'][:18000])
 train_y = list(df['labels'][:18000])
-test_x = list(df['filenames'][18000:])
-test_y = list(df['labels'][18000:])
-print(len(train_x), len(train_y))
+val_x = list(df['filenames'][18000:21000])
+val_y = list(df['labels'][18000:21000])
+test_x = list(df['filenames'][21000:])
+test_y = list(df['labels'][21000:])
+print(len(train_x), len(train_y), len(val_x), len(val_y), len(test_x), len(test_y))
 
 train_generator = create_dataset(train_x, train_y)
-val_generator = create_dataset(test_x, test_y)
+val_generator = create_dataset(val_x, val_y)
+test_generator = create_dataset(test_x, test_y)
 
-IMG_SIZE = 224 # Specify height and width of image to match the input format of the model
-CHANNELS = 3 # Keep RGB color channels to match the input format of the model
-BATCH_SIZE = 256 # Big enough to measure an F1-score
-AUTOTUNE = tf.data.experimental.AUTOTUNE # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
-SHUFFLE_BUFFER_SIZE = 1024 # Shuffle the training data by a chunck of 1024 observations
-STEPS_PER_EPOCH = np.ceil(18000/ BATCH_SIZE)
+#settings
+IMG_SIZE = 224 
+CHANNELS = 3 
+BATCH_SIZE = 128 
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 
-feature_extractor_layer = {}
-# VGG
-feature_extractor_layer['VGG'] = tf.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
-feature_extractor_layer['ResNet'] = tf.keras.applications.resnet.ResNet50(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
-feature_extractor_layer['InceptionV3'] = keras.applications.inception_v3.InceptionV3(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
-
-pretrained = 'VGG'
-feature_extractor_layer[pretrained].trainable = False
-print(feature_extractor_layer[pretrained].summary())
-
+#metrics
 def macro_f1(y, y_hat, thresh=0.5):
     """Compute the macro F1-score on a batch of observations (average F1 across labels)
     
@@ -112,33 +127,119 @@ def macro_f1(y, y_hat, thresh=0.5):
     macro_f1 = tf.reduce_mean(f1)
     return macro_f1
 
-csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'.csv')
-checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                    'training_flat_multilabel'+str(pretrained)+'.h5', save_best_only=True,
-            )
+def mean_per_class_accuracy(y, y_hat):
+    y_pred = tf.cast(tf.greater(y_hat, 0.5), tf.float32)
+    per_class_acc = []
+    per_class_acc.append(tf.cast(tf.math.count_nonzero(y_pred[i] * y[i], axis=0), tf.float32))
+    mean_acc = tf.reduce_mean(per_class_acc)
+    return mean_acc
 
-#if you wish to train a new model:
-model = tf.keras.Sequential([
-    feature_extractor_layer[pretrained],
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
-    tf.keras.layers.Dense(16, activation='sigmoid', name='output')
-])
+def precision(y, y_hat):
+    y_pred = tf.cast(tf.greater(y_hat, 0.5), tf.float32)
+    tp = tf.cast(tf.math.count_nonzero(y_pred * y, axis=0), tf.float32)
+    fp = tf.cast(tf.math.count_nonzero(y_pred * (1 - y), axis=0), tf.float32)
+    pres = tp / (tp + fp + 1e-16)
+    precision = tf.reduce_mean(pres)
+    return precision
 
+def recall(y, y_hat):
+    y_pred = tf.cast(tf.greater(y_hat, 0.5), tf.float32)
+    tp = tf.cast(tf.math.count_nonzero(y_pred * y, axis=0), tf.float32)
+    fn = tf.cast(tf.math.count_nonzero((1 - y_pred) * y, axis=0), tf.float32)
+    rec = tp / (tp + fn + 1e-16)
+    recall = tf.reduce_mean(rec)
+    return recall
+
+#models
+
+feature_extractor_layer = {}
+feature_extractor_layer['VGG'] = tf.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
+feature_extractor_layer['ResNet'] = tf.keras.applications.resnet.ResNet50(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
+feature_extractor_layer['InceptionV3'] = keras.applications.inception_v3.InceptionV3(include_top=False, weights='imagenet', input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
+
+
+if model_type == 'pretrained_no_tuning':
+    feature_extractor_layer[pretrained].trainable = False
+    print(feature_extractor_layer[pretrained].summary())
+    
+    csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'.csv')
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+                        'training_flat_multilabel'+str(pretrained)+'.h5', save_best_only=True,
+                )
+
+    if saved == False:
+        model = tf.keras.Sequential([
+            feature_extractor_layer[pretrained],
+            tf.keras.layers.GlobalAveragePooling2D(),
+            tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(16, activation='sigmoid', name='output')
+        ])
+    #in alternative, if you wish to resume training:
+    else:
+        tf.keras.models.load_model('training_flat_multilabel'+str(pretrained)+'.h5')
+        
+    print(model.summary())
+
+if model_type == 'pretrained_fine_tuning':
+    feature_extractor_layer[pretrained].trainable = True
+    
+    # Fine-tune from this layer onwards
+    fine_tune_at = 150
+    
+    # Freeze all the layers before the `fine_tune_at` layer
+    for layer in feature_extractor_layer[pretrained].layers[:fine_tune_at]:
+        layer.trainable =  False
+
+    print(feature_extractor_layer[pretrained].summary())
+    
+    if saved == False:
+        model = tf.keras.Sequential([
+            feature_extractor_layer[pretrained],
+            tf.keras.layers.GlobalAveragePooling2D(),
+            tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
+            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dense(16, activation='sigmoid', name='output')
+        ])
+        print(model.summary())
+    else: 
+        #in alternative, if you wish to resume training:
+        tf.keras.models.load_model('training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5')
+        
+    csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'fine_tuned.csv')
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+                        'training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5', save_best_only=True,
+                )
+if model_type == 'out_of_the_box':
+    if saved == False:
+        model = tf.keras.Sequential([
+        Convolution([64, 128, 128, 256]),
+        Dense([256, 64, 16])
+    ])
+    else: 
+        #in alternative, if you wish to resume training:
+        tf.keras.models.load_model('training_flat_multilabel_out_the_box.h5')
+    
+    csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_out_the_box.csv')
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+                        'training_flat_multilabel_out_the_box.h5', save_best_only=True,
+                )
+    
+    
+    
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
-              metrics=["accuracy",
-                       "binary_accuracy",
+              metrics=["binary_accuracy",
                        "categorical_accuracy",
-                       macro_f1])
-#in alternative, if you wish to resume training:
-#model = tf.keras.models.load_model('training_flat_multilabel'+str(pretrained)+'.h5')
-    
-print(model.summary())
+                       precision,
+                       recall,
+                       macro_f1
+                       ])
 
+    
 model.fit(
-        train_generator,
-        epochs=30,
-        validation_data = val_generator,
-        callbacks = [csv_logger, checkpoint],
+    train_generator,
+    epochs=30,
+    validation_data = val_generator,
+    callbacks = [csv_logger, checkpoint],
 )
