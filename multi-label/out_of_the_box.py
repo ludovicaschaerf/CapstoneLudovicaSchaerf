@@ -46,15 +46,15 @@ class Convolution(tf.keras.layers.Layer):
         activation = self.conv_layer(activation)
         activation = self.nn_batchnorm(activation)
         activation = self.nn_pooling(activation)
-        #activation = self.nn_dropout(activation)
+        activation = self.nn_dropout(activation)
         activation = self.conv_layer1(activation)
         activation = self.nn_batchnorm1(activation)
         activation = self.nn_pooling(activation)
-        #activation = self.nn_dropout(activation)
+        activation = self.nn_dropout(activation)
         activation = self.conv_layer2(activation)
         activation = self.nn_batchnorm2(activation)
         activation = self.nn_pooling(activation)
-        #activation = self.nn_dropout(activation)
+        activation = self.nn_dropout(activation)
         activation = self.conv_layer3(activation)
         activation = self.nn_batchnorm3(activation)
         activation = self.nn_pooling(activation)
@@ -86,5 +86,20 @@ class Dense(tf.keras.layers.Layer):
         activation = self.nn_dropout(activation)
         activation = self.dense_layer1(activation)
         activation = self.nn_dropout(activation)
-        return self.output_layer(activation)
+        return activation
     
+
+class MyModel(tf.keras.Model):
+    def __init__(self, shape1, shape2):
+        super(MyModel, self).__init__()
+        self.conv = Convolution(shape1)
+        self.dense = Dense(shape2)
+        self.output_ = tf.keras.layers.Dense(
+            shape2[2],
+            activation = 'sigmoid',
+            ) 
+
+    def call(self, inputs):
+        x = self.conv(inputs)
+        x = self.dense(x)
+        return self.output_(x)
