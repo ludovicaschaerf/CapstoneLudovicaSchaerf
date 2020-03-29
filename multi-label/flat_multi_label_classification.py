@@ -14,7 +14,7 @@ new_dataset = False
 #                    pretrained_fine_tuning,
 #                    out_of_the_box
 
-model_type = 'pretrained_fine_tuning'
+model_type = 'out_of_the_box'
 
 #saved options: True : continue training a saved model 
 #               False : start a new training
@@ -49,7 +49,7 @@ from os.path import isfile, join
 import pickle
 
 #import modules
-from out_of_the_box import Dense, Convolution
+from out_of_the_box import Dense, Convolution, MyModel
 import sys
 sys.path.insert(0, '../data')
 from datahandler_multilabel import create_dataset
@@ -177,7 +177,7 @@ if model_type == 'pretrained_no_tuning':
         ])
     #in alternative, if you wish to resume training:
     else:
-        tf.keras.models.load_model('training_flat_multilabel'+str(pretrained)+'.h5')
+        model = tf.keras.models.load_model('training_flat_multilabel'+str(pretrained)+'.h5')
         
     print(model.summary())
 
@@ -204,7 +204,7 @@ if model_type == 'pretrained_fine_tuning':
         print(model.summary())
     else: 
         #in alternative, if you wish to resume training:
-        tf.keras.models.load_model('training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5')
+        model = tf.keras.models.load_model('training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5')
         
     csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'fine_tuned.csv')
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
@@ -212,13 +212,10 @@ if model_type == 'pretrained_fine_tuning':
                 )
 if model_type == 'out_of_the_box':
     if saved == False:
-        model = tf.keras.Sequential([
-        Convolution([64, 128, 128, 256]),
-        Dense([256, 64, 16])
-    ])
+        model = MyModel([64, 64, 128, 128],[128, 64, 16])
     else: 
         #in alternative, if you wish to resume training:
-        tf.keras.models.load_model('training_flat_multilabel_out_the_box.h5')
+        model = tf.keras.models.load_model('training_flat_multilabel_out_the_box.h5')
     
     csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_out_the_box.csv')
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
