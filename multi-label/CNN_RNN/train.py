@@ -5,8 +5,6 @@ import numpy as np
 import os
 import pickle
 from torch.utils.data import DataLoader
-import sys
-sys.path.insert(0, '../data_process')
 from build_vocab import Vocabulary
 from data_loader import get_loader
 from model_attention import EncoderCNN, DecoderRNN
@@ -36,9 +34,9 @@ def main(args):
         vocab = pickle.load(f)
     print("build data loader ...")
     # Build data loader
-    data_loader = get_loader(args.image_dir, args.caption_path, vocab, 
-                             transform, args.batch_size,
-                             shuffle=True, num_workers=args.num_workers) 
+    data_loader = get_loader(args.image_dir, args.idx2path_path, args.caption_path, vocab, 
+                             args.batch_size, shuffle=True, transform=transform,
+                             num_workers=args.num_workers) 
     
     print("build the models ...")
     # Build the models
@@ -57,7 +55,7 @@ def main(args):
     total_step = len(data_loader)
     for epoch in range(args.num_epochs):
         for i, (images, captions, lengths) in enumerate(data_loader):
-            
+            print(i)
             # Set mini-batch dataset
             images = images.to(device)
             captions = captions.to(device)
@@ -88,11 +86,12 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', type=str, default='models/' , help='path for saving trained models')
+    parser.add_argument('--model_path', type=str, default='.' , help='path for saving trained models')
     parser.add_argument('--crop_size', type=int, default=224 , help='size for randomly cropping images')
-    parser.add_argument('--vocab_path', type=str, default='../data_process/data/zh_vocab.pkl', help='path for vocabulary wrapper')
-    parser.add_argument('--image_dir', type=str, default='.', help='directory for resized images') #data/resized2014
-    parser.add_argument('--caption_path', type=str, default='../data_process/data/annotations/img_tag.txt', help='path for train annotation json file')
+    parser.add_argument('--vocab_path', type=str, default='../../data/zh_vocab.pkl', help='path for vocabulary wrapper')
+    parser.add_argument('--image_dir', type=str, default='../../../data_tate', help='directory for resized images') #data/resized2014
+    parser.add_argument('--caption_path', type=str, default='../../data/MyData.json', help='path for train annotation json file')
+    parser.add_argument('--idx2path_path', type=str, default='../../data/idx2path.json', help='path for train idx2path json file')
     parser.add_argument('--log_step', type=int , default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int , default=1000, help='step size for saving trained models')
     
