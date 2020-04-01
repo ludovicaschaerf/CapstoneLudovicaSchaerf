@@ -13,7 +13,7 @@ from pycocotools.coco import COCO
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
-    def __init__(self, root, idx2path, my_data, vocab, transform=None):
+    def __init__(self, root, idx2path, my_data, vocab, transform=None, new_dataset=True):
         """Set the path for images, captions and vocabulary wrapper.
         
         Args:
@@ -30,7 +30,19 @@ class CocoDataset(data.Dataset):
         with open(my_data, 'r') as infile:
             self.MyData = json.load(infile)
         with open(idx2path, 'r') as infile:
-            self.idx2path = json.load(infile)  
+            self.idx2path = json.load(infile)
+        if new_dataset:
+            mypath = os.path.join('..','..','..','data_tate')
+            onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+            MyData1 = {}
+            idx2path1 = {}
+            for i,img_targ in enumerate(self.MyData.keys()):
+            if img_targ in onlyfiles:
+                MyData1[img_targ] = self.MyData[img_targ]
+                idx2path1[str(i)] = self.idx2path[str(i)]
+            self.MyData = MyData1
+            self.idx2path = idx2path1
+          
         
     def __getitem__(self, index):
         """Returns one data pair (image and caption)."""
@@ -41,13 +53,13 @@ class CocoDataset(data.Dataset):
         #img_id = coco.anns[ann_id]['image_id']
         #path = coco.loadImgs(img_id)[0]['file_name']
         path = self.idx2path[str(index)]
-        caption_0 = self.MyData[path]
+        caption_ = self.MyData[path]
         image = Image.open(os.path.join(self.root, path)).resize((224, 224)).convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
 
         # Convert caption (string) to word ids.
-        tokens = caption_0 #nltk.tokenize.word_tokenize(str(caption).lower())
+        tokens = caption_ #nltk.tokenize.word_tokenize(str(caption).lower())
         caption = []
         caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
