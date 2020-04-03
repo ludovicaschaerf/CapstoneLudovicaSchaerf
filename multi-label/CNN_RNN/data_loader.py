@@ -27,22 +27,9 @@ class CocoDataset(data.Dataset):
         #self.ids = list(self.coco.anns.keys())
         self.vocab = vocab
         self.transform = transform
-        with open(my_data, 'r') as infile:
-            self.MyData = json.load(infile)
-        with open(idx2path, 'r') as infile:
-            self.idx2path = json.load(infile)
-        if new_dataset:
-            mypath = os.path.join('..','..','..','data_tate')
-            onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
-            MyData1 = {}
-            idx2path1 = {}
-            for i,img_targ in enumerate(self.MyData.keys()):
-            if img_targ in onlyfiles:
-                MyData1[img_targ] = self.MyData[img_targ]
-                idx2path1[str(i)] = self.idx2path[str(i)]
-            self.MyData = MyData1
-            self.idx2path = idx2path1
-          
+        self.MyData = my_data
+        self.idx2path = idx2path
+                
         
     def __getitem__(self, index):
         """Returns one data pair (image and caption)."""
