@@ -16,7 +16,7 @@ new_dataset = False
 
 model_type = 'out_of_the_box'
 
-#saved options: True : continue training a saved model 
+#saved options: True : continue training a saved model
 #               False : start a new training
 saved = False
 
@@ -24,6 +24,11 @@ saved = False
 #                    ResNet
 #                    InceptionV3
 pretrained = 'VGG'
+
+#save_predictions options: True if you wish to already predict on the test set and save it
+#                          False otherwise
+save_predictions = False
+
 
 # TensorFlow and tf.keras
 import tensorflow as tf
@@ -62,17 +67,17 @@ Image.MAX_IMAGE_PIXELS = 999999999999 # Fix DecompressionBombWarning
 
 with open('../data/filenames.pkl', 'rb') as infile:
     filenames = pickle.load(infile)
-    
+
 with open('../data/labels.pkl', 'rb') as infile2:
     labels = pickle.load(infile2)
-    
+
 df = pd.concat([pd.Series(filenames, name='filenames'), pd.Series(labels, name='labels')], axis=1)
 df = shuffle(df,)
 print(df.shape, df.columns)
 
 if new_dataset == True:
     mypath = os.path.join('..','..','data_tate')
-    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))] 
+    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
     filenames1 = []
     labels1 = []
@@ -83,7 +88,7 @@ if new_dataset == True:
             labels1.append(labels[i])
     filenames = filenames1
     labels = labels1
-        
+
 df = pd.concat([pd.Series(filenames, name='filenames'), pd.Series(labels, name='labels')], axis=1)
 df = shuffle(df, random_state=42)
 print(df.shape, df.columns)
@@ -102,20 +107,20 @@ val_generator = create_dataset(val_x, val_y)
 test_generator = create_dataset(test_x, test_y)
 
 #settings
-IMG_SIZE = 224 
-CHANNELS = 3 
-BATCH_SIZE = 128 
+IMG_SIZE = 224
+CHANNELS = 3
+BATCH_SIZE = 56
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 #metrics
 def macro_f1(y, y_hat, thresh=0.5):
     """Compute the macro F1-score on a batch of observations (average F1 across labels)
-    
+
     Args:
         y (int32 Tensor): labels array of shape (BATCH_SIZE, N_LABELS)
         y_hat (float32 Tensor): probability matrix from forward propagation of shape (BATCH_SIZE, N_LABELS)
         thresh: probability value above which we predict positive
-        
+
     Returns:
         macro_f1 (scalar Tensor): value of macro F1 for the batch
     """
@@ -161,7 +166,7 @@ feature_extractor_layer['InceptionV3'] = keras.applications.inception_v3.Incepti
 if model_type == 'pretrained_no_tuning':
     feature_extractor_layer[pretrained].trainable = False
     print(feature_extractor_layer[pretrained].summary())
-    
+
     csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'.csv')
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
                         'training_flat_multilabel'+str(pretrained)+'.h5', save_best_only=True,
@@ -178,21 +183,21 @@ if model_type == 'pretrained_no_tuning':
     #in alternative, if you wish to resume training:
     else:
         model = tf.keras.models.load_model('training_flat_multilabel'+str(pretrained)+'.h5')
-        
+
     print(model.summary())
 
 if model_type == 'pretrained_fine_tuning':
     feature_extractor_layer[pretrained].trainable = True
-    
+
     # Fine-tune from this layer onwards
     fine_tune_at = 6*len(feature_extractor_layer[pretrained].layers)//7
-    
+
     # Freeze all the layers before the `fine_tune_at` layer
     for layer in feature_extractor_layer[pretrained].layers[:fine_tune_at]:
         layer.trainable =  False
 
     print(feature_extractor_layer[pretrained].summary())
-    
+
     if saved == False:
         model = tf.keras.Sequential([
             feature_extractor_layer[pretrained],
@@ -202,10 +207,10 @@ if model_type == 'pretrained_fine_tuning':
             tf.keras.layers.Dense(16, activation='sigmoid', name='output')
         ])
         print(model.summary())
-    else: 
+    else:
         #in alternative, if you wish to resume training:
         model = tf.keras.models.load_model('training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5')
-        
+
     csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_'+str(pretrained)+'fine_tuned.csv')
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
                         'training_flat_multilabel_'+str(pretrained)+'fine_tuned.h5', save_best_only=True,
@@ -213,17 +218,19 @@ if model_type == 'pretrained_fine_tuning':
 if model_type == 'out_of_the_box':
     if saved == False:
         model = MyModel([64, 64, 128, 128],[128, 64, 16])
-    else: 
+        model.build(input_shape=(BATCH_SIZE, 224,224,3))
+        print(model.summary())
+    else:
         #in alternative, if you wish to resume training:
         model = tf.keras.models.load_model('training_flat_multilabel_out_the_box.h5')
-    
+
     csv_logger = tf.keras.callbacks.CSVLogger('training_flat_multilabel_out_the_box.csv')
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
                         'training_flat_multilabel_out_the_box.h5', save_best_only=True,
                 )
-    
-    
-    
+
+
+
 model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
               metrics=["binary_accuracy",
@@ -233,10 +240,34 @@ model.compile(optimizer='adam',
                        macro_f1
                        ])
 
-    
+
 model.fit(
     train_generator,
     epochs=30,
     validation_data = val_generator,
     callbacks = [csv_logger, checkpoint],
 )
+
+if saved_predictions:
+    pred = model.predict_generator(test_generator, verbose=1)
+    predicted_class_indices = np.where(pred > 0.5, 1, 0)
+    labels_dict = {0:'people',1:'objects',2:'places',3:'architecture',4:'abstraction',5:'society',\
+          6:'nature',7:'emotions, concepts and ideas',8:'interiors',9:'work and occupations', \
+          10:'symbols & personifications',11:'religion and belief',12:'leisure and pastimes',\
+          13:'history',14:'literature and fiction',15:'group/movement'}
+    predictions = [[]]*len(predicted_class_indices)
+    actual = [[]]*len(test_y)
+    for k in range(len(predicted_class_indices)):
+        predictions[k] = []
+        actual[k] = []
+        for i in range(len(predicted_class_indices[k])):
+            if predicted_class_indices[k][i] == 1:
+                predictions[k].append(labels_dict[i])
+            if test_y[k][i] == 1:
+                actual[k].append(labels_dict[i])
+                
+    print(len(predictions), len(actual))
+    results=pd.DataFrame({"Filename":test_x,
+                          "Actual":actual,
+                          "Predictions":predictions})
+    results.to_csv("results_"+pretrained+model_type+".csv",index=False)
