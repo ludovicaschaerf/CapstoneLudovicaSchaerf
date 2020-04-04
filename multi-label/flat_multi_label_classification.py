@@ -14,7 +14,7 @@ new_dataset = False
 #                    pretrained_fine_tuning,
 #                    out_of_the_box
 
-model_type = 'out_of_the_box'
+model_type = 'pretrained_no_tuning'
 
 #saved options: True : continue training a saved model
 #               False : start a new training
@@ -27,7 +27,7 @@ pretrained = 'VGG'
 
 #save_predictions options: True if you wish to already predict on the test set and save it
 #                          False otherwise
-save_predictions = False
+saved_predictions = False
 
 
 # TensorFlow and tf.keras
