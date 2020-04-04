@@ -20,7 +20,7 @@ def parse_function(filename, label, CHANNELS = 3, IMG_SIZE = 224):
     # Resize it to fixed shape
     image_resized = tf.image.resize(image_decoded, [IMG_SIZE, IMG_SIZE])
     # Normalize it from [0, 255] to [0.0, 1.0]
-    image_normalized = image_resized / 255.0
+    image_normalized = image_resized / 224.0
     # Decode it into a dense vector
     return image_normalized, label
 
