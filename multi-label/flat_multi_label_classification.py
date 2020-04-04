@@ -178,7 +178,7 @@ if model_type == 'pretrained_no_tuning':
             tf.keras.layers.GlobalAveragePooling2D(),
             tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(16, activation='sigmoid', name='output')
+            tf.keras.layers.Dense(15, activation='sigmoid', name='output')
         ])
     #in alternative, if you wish to resume training:
     else:
@@ -204,7 +204,7 @@ if model_type == 'pretrained_fine_tuning':
             tf.keras.layers.GlobalAveragePooling2D(),
             tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
             tf.keras.layers.Dropout(0.3),
-            tf.keras.layers.Dense(16, activation='sigmoid', name='output')
+            tf.keras.layers.Dense(15, activation='sigmoid', name='output')
         ])
         print(model.summary())
     else:
@@ -217,8 +217,8 @@ if model_type == 'pretrained_fine_tuning':
                 )
 if model_type == 'out_of_the_box':
     if saved == False:
-        model = MyModel([64, 64, 128, 128],[128, 64, 16])
-        model.build(input_shape=(BATCH_SIZE, 224,224,3))
+        model = MyModel([64, 64, 128, 128],[128, 64, 15])
+        model.build(input_shape=(BATCH_SIZE, 224, 224, 3))
         print(model.summary())
     else:
         #in alternative, if you wish to resume training:
