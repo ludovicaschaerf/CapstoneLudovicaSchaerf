@@ -30,7 +30,6 @@ from os.path import isfile, join
 import pickle
 
 #import modules
-from out_of_the_box import Dense, Convolution, MyModel
 import sys
 sys.path.insert(0, '../data')
 from datahandler_multilabel import create_dataset
@@ -191,21 +190,7 @@ def main(args):
         csv_logger = tf.keras.callbacks.CSVLogger('./results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned_deep.csv')
         checkpoint = tf.keras.callbacks.ModelCheckpoint(
                             './results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned_deep.h5', save_best_only=True,
-                    )
-    if args.model_type == 'out_of_the_box':
-        if args.saved == False:
-            model = MyModel([64, 64, 128, 128],[128, 64, 141])
-            model.build(input_shape=(args.batch_size, 224, 224, 3))
-            print(model.summary())
-        else:
-            #in alternative, if you wish to resume training:
-            model = tf.keras.models.load_model('./results/training_flat_multilabel_out_the_box_deep.h5')
-    
-        csv_logger = tf.keras.callbacks.CSVLogger('./results/training_flat_multilabel_out_the_box_deep.csv')
-        checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                            './results/training_flat_multilabel_out_the_box_deep.h5', save_best_only=True,
-                    )
-    
+                    )    
     
     
     model.compile(optimizer='adam',
@@ -230,7 +215,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--new_dataset', default=False , help='True : the dataset was downloaded recently so I need to filter it, False : the dataset in my computer is the same on filenames.pkl')
-    parser.add_argument('--model_type', type=str, default='pretrained_fine_tuning' , help='options pretrained_no_tuning, pretrained_fine_tuning, out_of_the_box')
+    parser.add_argument('--model_type', type=str, default='pretrained_fine_tuning' , help='options pretrained_no_tuning, pretrained_fine_tuning')
     parser.add_argument('--saved', default=False, help='True : continue training a saved model, False : start a new training')
     parser.add_argument('--pretrained', type=str, default='VGG', help='VGG, ResNet, InceptionV3')
     parser.add_argument('--saved_predictions', default=False, help='True if you wish to already predict on the test set and save it, False otherwise')
