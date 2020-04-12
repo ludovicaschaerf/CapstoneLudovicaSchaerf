@@ -77,7 +77,7 @@ def main(args):
     # Train the models
     total_step = len(data_loader_train)
     for epoch in range(args.num_epochs):
-        for i, (images, captions, lengths) in enumerate(data_loader_train):
+        for i, (images, captions, lengths, path) in enumerate(data_loader_train):
             print(i)
             # Set mini-batch dataset
             images = images.to(device)
@@ -106,7 +106,8 @@ def main(args):
                 torch.save(encoder.state_dict(), os.path.join(
                     args.model_path, 'encoder-{}-{}.ckpt'.format(epoch+1, i+1)))
     
-    for i, (images, captions, lengths) in enumerate(data_loader_test):
+    dict_test = {}
+    for i, (images, captions, lengths, path) in enumerate(data_loader_test):
             print(i)
             # Set mini-batch dataset
             images = images.to(device)
@@ -115,9 +116,12 @@ def main(args):
             
             # Forward, backward and optimize
             features = encoder(images)
-            predictions = decoder.forward(features, captions, lengths)
-            with open('../predictions_CNN_RNN.pkl', 'wb') as outfile:
-                pickle.dump((images, predictions), outfile)
+            outputs = decoder(features, captions, lengths)
+            outputs = pack_padded_sequence(outputs, lengths, batch_first=True)[0]
+            dict_test[path] = (outputs, target)
+    
+    with open('../results/predictions_CNN_RNN.pkl', 'wb') as outfile:
+        pickle.dump(dict_test, outfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
