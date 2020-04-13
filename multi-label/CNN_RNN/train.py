@@ -58,7 +58,7 @@ def main(args):
    
     
     data_loader_test = get_loader(args.image_dir, idx2path_test, caption_test, vocab, 
-                                 args.batch_size, shuffle=True, transform=transform,
+                                 1, shuffle=True, transform=transform,
                                  num_workers=args.num_workers) 
     
     print("build the models ...")
@@ -104,8 +104,9 @@ def main(args):
                     torch.save(encoder.state_dict(), os.path.join(
                         args.model_path, 'encoder-{}-{}.ckpt'.format(epoch+1, i+1)))
     else:
-        encoder.load_state_dict(torch.load("../results/encoder-30-600.ckpt"))
-        decoder.load_state_dict(torch.load("../results/decoder-30-600.ckpt")) 
+        print(device)
+        encoder.load_state_dict(torch.load("../results/encoder-30-600.ckpt", map_location=torch.device(device)))
+        decoder.load_state_dict(torch.load("../results/decoder-30-600.ckpt", map_location=torch.device(device))) 
 
         dict_test = {}
         for i, (images, captions, lengths, path) in enumerate(data_loader_test):
@@ -119,7 +120,7 @@ def main(args):
                 features = encoder(images)
                 outputs = decoder(features, captions, lengths)
                 outputs = pack_padded_sequence(outputs, lengths, batch_first=True)[0]
-                dict_test[path] = (outputs, targets)
+                dict_test[path[0]] = (outputs[0].detach().numpy(), targets[1].detach().numpy())
         
         with open('../results/predictions_CNN_RNN.pkl', 'wb') as outfile:
             pickle.dump(dict_test, outfile)
