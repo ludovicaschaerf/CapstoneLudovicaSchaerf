@@ -27,7 +27,7 @@ class Vocabulary(object):
     def __len__(self):
         return len(self.word2idx)
 
-def build_vocab(file="../../data/MyWords.json"):
+def build_vocab(file="../data/results/MyWords.json"):
     
     words = json.load(open(file))
     # Create a vocab wrapper and add some special tokens.
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--caption_path', type=str, 
                         default='data/annotations/img_tag.txt', 
                         help='path for train annotation file')
-    parser.add_argument('--vocab_path', type=str, default='../zh_vocab.pkl', 
+    parser.add_argument('--vocab_path', type=str, default='../data/results/zh_vocab.pkl', 
                         help='path for saving vocabulary wrapper')
     parser.add_argument('--threshold', type=int, default=4, 
                         help='minimum word count threshold')
