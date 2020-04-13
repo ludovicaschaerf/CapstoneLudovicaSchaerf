@@ -104,8 +104,8 @@ def main(args):
                     torch.save(encoder.state_dict(), os.path.join(
                         args.model_path, 'encoder-{}-{}.ckpt'.format(epoch+1, i+1)))
     else:
-        encoder.load_state_dict(torch.load("models/encoder-30-100.ckpt"))
-        decoder.load_state_dict(torch.load("models/decoder-30-100.ckpt")) 
+        encoder.load_state_dict(torch.load("../results/encoder-30-600.ckpt"))
+        decoder.load_state_dict(torch.load("../results/decoder-30-600.ckpt")) 
 
         dict_test = {}
         for i, (images, captions, lengths, path) in enumerate(data_loader_test):
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     parser.add_argument('--caption_path', type=str, default='../../data/results/MyData.json', help='path for train annotation json file')
     parser.add_argument('--idx2path_path', type=str, default='../../data/results/idx2path.json', help='path for train idx2path json file')
     parser.add_argument('--log_step', type=int , default=10, help='step size for prining log info')
-    parser.add_argument('--save_step', type=int , default=700, help='step size for saving trained models')
+    parser.add_argument('--save_step', type=int , default=600, help='step size for saving trained models')
     parser.add_argument('--resume_training' , default=False, help='to resume training')
     
     # Model parameters
