@@ -64,7 +64,7 @@ def main():
             accuracy[i] /= len(y)
         return accuracy
 
-    list_paths = ['training_flat_multilabel_InceptionV3fine_tuned.h5', \
+    list_paths = ['training_flat_multilabel_ResNetfine_tuned.h5', \
                   'training_flat_multilabel_VGGfine_tuned.h5', \
                   'training_flat_multilabel_InceptionV3fine_tuned.h5', \
                   'training_flat_multilabelVGG.h5', \
@@ -73,7 +73,7 @@ def main():
                  ]
     for model in list_paths:
         model = tf.keras.models.load_model('./results/'+model, compile=False)
-
+        print(model)
         model.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
               metrics=["binary_accuracy",
@@ -86,26 +86,33 @@ def main():
         with open('../data/train_test_split.pkl', 'rb') as infile:
             train_x, train_y, val_x, val_y, test_x, test_y = pickle.load(infile)
         test_generator = create_dataset(test_x, test_y)
-
+        print(len(test_y[0][:15]))
+            
         per_item_metrics = model.evaluate(test_generator, verbose=2)
         print(per_item_metrics)
         pred = model.predict_generator(test_generator, verbose=1)
         predicted_class_indices = np.where(pred > 0.5, 1, 0)
-
+        
+        for i,label in enumerate(predicted_class_indices):
+            predicted_class_indices[i] = label[:15]
+            
         per_class_accuracy = mean_per_class_accuracy(
-            test_y, predicted_class_indices, 15
+            test_y, predicted_class_indices, len(test_y[0])
         )
 
-        per_class_metrics = [per_class_accuracy, sum(per_class_accuracy)/15]
+        per_class_metrics = [per_class_accuracy, sum(per_class_accuracy)/len(test_y[0])]
         precision_ = metrics.precision_score(test_y, predicted_class_indices, average=None)
         recall_ = metrics.recall_score(test_y, predicted_class_indices, average=None)
         f1_ = metrics.f1_score(test_y, predicted_class_indices, average=None)
-        per_class_metrics.append([sum(precision_)/15, sum(recall_)/15, sum(f1_)/15])
+        per_class_metrics.append([sum(precision_)/len(test_y[0]), sum(recall_)/len(test_y[0]), sum(f1_)/len(test_y[0])])
+        
         print(per_class_metrics)
-        summary_metrics = metrics.classification_report(test_y, predicted_class_indices, output_dict = True)
+        summary_metrics = {}
+        summary_metrics[model] = metrics.classification_report(test_y, predicted_class_indices, output_dict = True)
         print(summary_metrics)
+    
     with open('evals.pkl', 'wb') as outfile:
-        pickle.dump((per_item_metrics, per_class_metrics, summary_metrics), outfile)
+        pickle.dump(summary_metrics, outfile)
 
 
 
