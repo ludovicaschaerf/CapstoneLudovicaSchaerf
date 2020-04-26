@@ -63,7 +63,8 @@ def main():
                     accuracy[i] += 1
             accuracy[i] /= len(y)
         return accuracy
-
+    summary_metrics = {}
+    
     list_paths = ['training_flat_multilabel_ResNetfine_tuned.h5', \
                   'training_flat_multilabel_VGGfine_tuned.h5', \
                   'training_flat_multilabel_InceptionV3fine_tuned.h5', \
@@ -107,7 +108,7 @@ def main():
         per_class_metrics.append([sum(precision_)/len(test_y[0]), sum(recall_)/len(test_y[0]), sum(f1_)/len(test_y[0])])
         
         print(per_class_metrics)
-        summary_metrics = {}
+        
         summary_metrics[model] = metrics.classification_report(test_y, predicted_class_indices, output_dict = True)
         print(summary_metrics)
     
