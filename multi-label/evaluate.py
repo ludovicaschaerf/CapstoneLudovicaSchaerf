@@ -73,9 +73,9 @@ def main():
                   'training_flat_multilabelResNet.h5', \
                  ]
     for model in list_paths:
-        model = tf.keras.models.load_model('./results/'+model, compile=False)
+        model1 = tf.keras.models.load_model('./results/'+model, compile=False)
         print(model)
-        model.compile(optimizer='adam',
+        model1.compile(optimizer='adam',
               loss=tf.keras.losses.binary_crossentropy,
               metrics=["binary_accuracy",
                        "categorical_accuracy",
@@ -89,9 +89,9 @@ def main():
         test_generator = create_dataset(test_x, test_y)
         print(len(test_y[0][:15]))
             
-        per_item_metrics = model.evaluate(test_generator, verbose=2)
+        per_item_metrics = model1.evaluate(test_generator, verbose=2)
         print(per_item_metrics)
-        pred = model.predict_generator(test_generator, verbose=1)
+        pred = model1.predict_generator(test_generator, verbose=1)
         predicted_class_indices = np.where(pred > 0.5, 1, 0)
         
         for i,label in enumerate(predicted_class_indices):
@@ -101,15 +101,8 @@ def main():
             test_y, predicted_class_indices, len(test_y[0])
         )
 
-        per_class_metrics = [per_class_accuracy, sum(per_class_accuracy)/len(test_y[0])]
-        precision_ = metrics.precision_score(test_y, predicted_class_indices, average=None)
-        recall_ = metrics.recall_score(test_y, predicted_class_indices, average=None)
-        f1_ = metrics.f1_score(test_y, predicted_class_indices, average=None)
-        per_class_metrics.append([sum(precision_)/len(test_y[0]), sum(recall_)/len(test_y[0]), sum(f1_)/len(test_y[0])])
-        
-        print(per_class_metrics)
-        
-        summary_metrics[model] = metrics.classification_report(test_y, predicted_class_indices, output_dict = True)
+        summary_metrics[model] = [metrics.classification_report(test_y, predicted_class_indices, output_dict = True)]
+        summary_metrics[model] += per_item_metrics
         print(summary_metrics)
     
     with open('evals.pkl', 'wb') as outfile:
