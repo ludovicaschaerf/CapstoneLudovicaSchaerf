@@ -34,6 +34,8 @@ from out_of_the_box import Dense, Convolution, MyModel
 import sys
 sys.path.insert(0, '../data')
 from datahandler_multilabel import create_dataset
+from sklearn.utils import class_weight
+
 
 
 # to fix some warnings
@@ -129,8 +131,23 @@ def main(args):
         recall = tf.reduce_mean(rec)
         return recall
     
-    #models
+    # class_weights
+    num_elts = [14452, 9418, 6665, 8159, 7225, 7371, 12137, 6101, 1774, 4047, 2360, 1998, 2218, 1205, 1960]
+    total = sum(num_elts)
+    print(total)
+    if args.class_weights:
+        class_weight = {0: total/num_elts[0], 1: total/num_elts[1], \
+                        2: total/num_elts[2], 3: total/num_elts[3], \
+                        4: total/num_elts[4], 5: total/num_elts[5], \
+                        6: total/num_elts[6], 7: total/num_elts[7], \
+                        8: total/num_elts[8], 9: total/num_elts[9], \
+                        10: total/num_elts[10], 11: total/num_elts[11], \
+                        12: total/num_elts[12], 13: total/num_elts[13], \
+                        14: total/num_elts[14]}
+    else:
+        class_weight = None
     
+    #models    
     feature_extractor_layer = {}
     feature_extractor_layer['VGG'] = tf.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet', \
                                                                        input_shape= (IMG_SIZE,IMG_SIZE,CHANNELS))
@@ -223,7 +240,8 @@ def main(args):
         epochs=args.num_epochs,
         validation_data = val_generator,
         callbacks = [csv_logger, checkpoint],
-        workers = args.num_workers
+        workers = args.num_workers,
+        class_weight = class_weight
     )
     
     if args.saved_predictions:
@@ -258,8 +276,8 @@ if __name__ == '__main__':
     parser.add_argument('--saved', default=False, help='True : continue training a saved model, False : start a new training')
     parser.add_argument('--pretrained', type=str, default='VGG', help='VGG, ResNet, InceptionV3')
     parser.add_argument('--saved_predictions', default=False, help='True if you wish to already predict on the test set and save it, False otherwise')
-    
-    parser.add_argument('--num_epochs', type=int, default=30)
+    parser.add_argument('--class_weights', default=True, help='True if you wish to use class weights for a balanced classification, False otherwise')
+    parser.add_argument('--num_epochs', type=int, default=60)
     parser.add_argument('--batch_size', type=int, default=56)
     parser.add_argument('--num_workers', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.001)
