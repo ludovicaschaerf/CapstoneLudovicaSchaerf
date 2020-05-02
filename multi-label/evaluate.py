@@ -65,12 +65,12 @@ def main():
         return accuracy
     summary_metrics = {}
     
-    list_paths = ['training_flat_multilabel_ResNetfine_tuned.h5', \
-                  'training_flat_multilabel_VGGfine_tuned.h5', \
-                  'training_flat_multilabel_InceptionV3fine_tuned.h5', \
+    list_paths = [#'training_flat_multilabel_ResNetfine_tuned.h5', \
+                  #'training_flat_multilabel_VGGfine_tuned.h5', \
+                  #'training_flat_multilabel_InceptionV3fine_tuned.h5', \
                   'training_flat_multilabelVGG.h5', \
-                  'training_flat_multilabelInceptionV3.h5', \
-                  'training_flat_multilabelResNet.h5', \
+                  #'training_flat_multilabelInceptionV3.h5', \
+                  #'training_flat_multilabelResNet.h5', \
                  ]
     for model in list_paths:
         model1 = tf.keras.models.load_model('./results/'+model, compile=False)
@@ -103,9 +103,10 @@ def main():
 
         summary_metrics[model] = [metrics.classification_report(test_y, predicted_class_indices, output_dict = True)]
         summary_metrics[model] += per_item_metrics
+        summary_metrics[model] += [per_class_accuracy]
         print(summary_metrics)
     
-    with open('evals.pkl', 'wb') as outfile:
+    with open('evals_vgg_weight.pkl', 'wb') as outfile:
         pickle.dump(summary_metrics, outfile)
 
 
