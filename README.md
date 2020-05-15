@@ -30,4 +30,4 @@ In **multi_label** there are the following files/folders:
 
 In **hierarchical** there are the following files:
 - Cascading-Classification.ipynb: this implements a hierarchical classification that uses the prediction at level 1 and embeds it into an input for the prediction at level 2.
-deep_multi_label_classification.py: this file is equivalent to flat_multi_label_classification.py but with the data of level 2. Here the classification of level 2 does not use any information of the prediction of level 1.
+- deep_multi_label_classification.py: this file is equivalent to flat_multi_label_classification.py but with the data of level 2. Here the classification of level 2 does not use any information of the prediction of level 1.
