@@ -10,24 +10,25 @@ The repository is organised as follows:
 - **hierarchical**: contains the classifications at level 2. 
 
 In **data** there are the following files:
-- FlatDatasetDescription.ipynb: this contains some statistics on the dataset and on the target of the classification
-- Pre-processingForHierarchicalDatahandler.ipynb: this contains a sample of the preprocessing for the classification at level 2. If run, it pickles two csvs containing the preprocessed image paths and targets, which can be used later for classification without having to re-run the preprocessing 
-- Pre-processingForMulti-LabelDatahandler.ipynb: this contains a sample of the preprocessing for the classification at level 1. If run, it pickles two csvs containing the preprocessed image paths and targets, which can be used later for classification without having to re-run the preprocessing 
-- RetrievingTateModernImages.ipynb: this contains the code to retrieve the images from the urls that are saved on artwork_data.csv (among the files that can be downloaded from https://github.com/tategallery/collection
-- TateDatasetExploration.ipynb: this contains an investigation into the files of the Tate collection and how they can be used to retrieve the information on the Subject Index.
+- [Notebook on Dataset Description](data/FlatDatasetDescription.ipynb): this contains some statistics on the dataset and on the target of the classification
+- [Notebook on Pre-processing for the Hierarchical Datahandler](data/Pre-processingForHierarchicalDatahandler.ipynb): this contains a sample of the preprocessing for the classification at level 2. If run, it pickles two csvs containing the preprocessed image paths and targets, which can be used later for classification without having to re-run the preprocessing 
+- [Notebook on Pre-processing for the Multi-label Datahandler](data/Pre-processingForMulti-LabelDatahandler.ipynb): this contains a sample of the preprocessing for the classification at level 1. If run, it pickles two csvs containing the preprocessed image paths and targets, which can be used later for classification without having to re-run the preprocessing 
+- [Notebook on How to Retrieve the Dataset Images](data/RetrievingTateModernImages.ipynb): this contains the code to retrieve the images from the urls that are saved on artwork_data.csv (among the files that can be downloaded from https://github.com/tategallery/collection
+- [Notebook on Dataset Exploration](data/TateDatasetExploration.ipynb): this contains an investigation into the files of the Tate collection and how they can be used to retrieve the information on the Subject Index.
 - __init__.py
-- datahandler_cascading.py: this is the datahandler that is used as a generator for all models at level 2. The handler resizes and batches the data
-- datahandler_multilabel.py: this is the datahandler that is used as a generator for all models at level 1. The handler resizes and batches the data
+- [Python file containing Cascading Datahandler](data/datahandler_cascading.py): this is the datahandler that is used as a generator for all models at level 2. The handler resizes and batches the data
+- [Python file containing Multi-label Datahandler](data/datahandler_multilabel.py): this is the datahandler that is used as a generator for all models at level 1. The handler resizes and batches the data
 
 In **multi_label** there are the following files/folders:
-- CNN_RNN: this is a folder that contains the adapted implementation of CNN-RNN in pytorch, downloaded from https://github.com/Epiphqny/Multiple-instance-learning, the datahandler is fully written by me.
-- CNN-RNN-flat-multi-label-classification.ipynb: this file contains all of the preliminary work that was done in order to be able to run the files in CNN-RNN.
-- FlatMulti-LabelClassification.ipynb: this contains the classification code, with all the pretrained used, with and without finetuning and the scratch model.
-- Model-Evaluation.ipynb: this file contains all the visualisations that have been made, together with most of the evaluations.
-- evaluate.py: this is a python file that loops over all the saved models and evaluates them according to accuracy, precision, recall, F1 score both overall and per-class.
-- flat_multi_label_classification.py: this is a python version of FlatMulti-LabelClassification.ipynb, the file automatised and takes the model, whether to fine tune or not and whether to add weights as argument.
-- out_of_the_box.py: this contains the architecture of the baseline model, which is trained from scratch.
+- [Folder containing CNN-RNN implementation](multi-label/CNN_RNN/): this is a folder that contains the adapted implementation of CNN-RNN in pytorch, downloaded from https://github.com/Epiphqny/Multiple-instance-learning, the datahandler is fully written by me.
+- [Notebook on Pre-processing for CNN-RNN](multi-label/CNN-RNN-flat-multi-label-classification.ipynb): this file contains all of the preliminary work that was done in order to be able to run the files in CNN-RNN.
+- [Notebook on Flat Multi-label Classification](multi-label/FlatMulti-LabelClassification.ipynb): this contains the classification code, with all the pretrained used, with and without finetuning and the scratch model.
+- [Notebook containing Model Evaluations](multi-label/Model-Evaluation.ipynb): this file contains all the visualisations that have been made, together with most of the evaluations.
+- [Python file for general evalution](multi-label/evaluate.py): this is a python file that loops over all the saved models and evaluates them according to accuracy, precision, recall, F1 score both overall and per-class.
+- [Python file containing flat multi-label classification](multi-label/flat_multi_label_classification.py): this is a python version of FlatMulti-LabelClassification.ipynb, the file automatised and takes the model, whether to fine tune or not and whether to add weights as argument.
+- [Python file containing scratch model architecture](multi-label/out_of_the_box.py): this contains the architecture of the baseline model, which is trained from scratch.
 
 In **hierarchical** there are the following files:
-- Cascading-Classification.ipynb: this implements a hierarchical classification that uses the prediction at level 1 and embeds it into an input for the prediction at level 2.
-- deep_multi_label_classification.py: this file is equivalent to flat_multi_label_classification.py but with the data of level 2. Here the classification of level 2 does not use any information of the prediction of level 1.
+- [Notebook on Cascading Classification](hierarchical/Cascading-Classification.ipynb): this implements a cascading classification that uses the prediction at level 1 and embeds it into an input for the prediction at level 2.
+- [Notebook on Hierarchical Classification](hierarchical/Hierarchical-Classification.ipynb): this implements HDCNN according to https://github.com/justinessert/hierarchical-deep-cnn.
+- [Python file for flat multi-label classification at level 2](hierarchical/deep_multi_label_classification.py): this file is equivalent to flat_multi_label_classification.py but with the data of level 2. Here the classification of level 2 does not use any information of the prediction of level 1.
