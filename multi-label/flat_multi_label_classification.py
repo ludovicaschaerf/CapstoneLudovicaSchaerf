@@ -75,18 +75,14 @@ def main(args):
     print(df.shape, df.columns)
     
     #train test val split
-    train_x = list(df['filenames'][:18000])
-    train_y = list(df['labels'][:18000])
-    val_x = list(df['filenames'][18000:21000])
-    val_y = list(df['labels'][18000:21000])
-    test_x = list(df['filenames'][21000:])
-    test_y = list(df['labels'][21000:])
+    with open('../data/train_test_split.pkl', 'rb') as infile:
+        train_x, train_y, val_x, val_y, test_x, test_y = pickle.load(infile)
     print(len(train_x), len(train_y), len(val_x), len(val_y), len(test_x), len(test_y))
     
     train_generator = create_dataset(train_x, train_y, BATCH_SIZE=args.batch_size)
     val_generator = create_dataset(val_x, val_y, BATCH_SIZE=args.batch_size)
     test_generator = create_dataset(test_x, test_y, BATCH_SIZE=args.batch_size)
-    
+    print(tf.test.is_gpu_available())
     
     #metrics
     def macro_f1(y, y_hat, thresh=0.5):
@@ -151,7 +147,7 @@ def main(args):
     feature_extractor_layer = {}
     feature_extractor_layer['VGG'] = tf.keras.applications.vgg16.VGG16(include_top=False, weights='imagenet', \
                                                                        input_shape= (IMG_SIZE,IMG_SIZE,CHANNELS))
-    feature_extractor_layer['ResNet'] = tf.keras.applications.resnet.ResNet50(include_top=False, weights='imagenet',\
+    feature_extractor_layer['ResNet'] = tf.keras.applications.resnet_v2.ResNet50V2(include_top=False, weights='imagenet',\
                                                                               input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
     feature_extractor_layer['InceptionV3'] = keras.applications.inception_v3.InceptionV3(include_top=False, weights='imagenet', \
                                                                                          input_shape=(IMG_SIZE,IMG_SIZE,CHANNELS))
@@ -163,20 +159,21 @@ def main(args):
     
         csv_logger = tf.keras.callbacks.CSVLogger('./results/training_flat_multilabel_'+str(args.pretrained)+'.csv')
         checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                            './results/training_flat_multilabel'+str(args.pretrained)+'.h5', save_best_only=True,
+                            './results/training_flat_multilabel'+str(args.pretrained)+'.h5', save_best_only=False,
                     )
     
         if args.saved == False:
             model = tf.keras.Sequential([
                 feature_extractor_layer[args.pretrained],
                 tf.keras.layers.GlobalAveragePooling2D(),
-                tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
-                tf.keras.layers.Dropout(0.2),
+                tf.keras.layers.Dense(2048, activation='relu', name='hidden_layer'),
+                tf.keras.layers.Dense(700, activation='relu', name='hidden_layer2'),
+                tf.keras.layers.Dropout(0.4),
                 tf.keras.layers.Dense(15, activation='sigmoid', name='output')
             ])
         #in alternative, if you wish to resume training:
         else:
-            model = tf.keras.models.load_model('./results/training_flat_multilabel'+str(args.pretrained)+'.h5')
+            model = tf.keras.models.load_model('./results/training_flat_multilabel'+str(args.pretrained)+'.h5', compile=False)
     
         print(model.summary())
     
@@ -184,7 +181,7 @@ def main(args):
         feature_extractor_layer[args.pretrained].trainable = True
     
         # Fine-tune from this layer onwards
-        fine_tune_at = 6*len(feature_extractor_layer[args.pretrained].layers)//7
+        fine_tune_at = 3*len(feature_extractor_layer[args.pretrained].layers)//7
     
         # Freeze all the layers before the `fine_tune_at` layer
         for layer in feature_extractor_layer[args.pretrained].layers[:fine_tune_at]:
@@ -197,17 +194,17 @@ def main(args):
                 feature_extractor_layer[args.pretrained],
                 tf.keras.layers.GlobalAveragePooling2D(),
                 tf.keras.layers.Dense(1024, activation='relu', name='hidden_layer'),
-                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dropout(0.2),
                 tf.keras.layers.Dense(15, activation='sigmoid', name='output')
             ])
             print(model.summary())
         else:
             #in alternative, if you wish to resume training:
-            model = tf.keras.models.load_model('./results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned.h5')
+            model = tf.keras.models.load_model('./results/training_flat_multilabel_'+str(args.pretrained)+'_fine_tuned.h5', compile=False)
     
-        csv_logger = tf.keras.callbacks.CSVLogger('./results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned.csv')
+        csv_logger = tf.keras.callbacks.CSVLogger('./results/training_flat_multilabel_'+str(args.pretrained)+'_fine_tuned.csv')
         checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                            './results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned.h5', save_best_only=True,
+                            './results/training_flat_multilabel_'+str(args.pretrained)+'fine_tuned.h5', save_best_only=False,
                     )
     if args.model_type == 'out_of_the_box':
         if args.saved == False:
@@ -228,7 +225,6 @@ def main(args):
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.binary_crossentropy,
                   metrics=["binary_accuracy",
-                           "categorical_accuracy",
                            precision,
                            recall,
                            macro_f1
@@ -241,7 +237,8 @@ def main(args):
         validation_data = val_generator,
         callbacks = [csv_logger, checkpoint],
         workers = args.num_workers,
-        class_weight = class_weight
+        class_weight = class_weight,
+        use_multiprocessing = True
     )
     
     if args.saved_predictions:
@@ -272,14 +269,14 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--new_dataset', default=False , help='True : the dataset was downloaded recently so I need to filter it, False : the dataset in my computer is the same on filenames.pkl')
-    parser.add_argument('--model_type', type=str, default='pretrained_no_tuning' , help='options pretrained_no_tuning, pretrained_fine_tuning, out_of_the_box')
+    parser.add_argument('--model_type', type=str, default='pretrained_fine_tuning' , help='options pretrained_no_tuning, pretrained_fine_tuning, out_of_the_box')
     parser.add_argument('--saved', default=False, help='True : continue training a saved model, False : start a new training')
     parser.add_argument('--pretrained', type=str, default='VGG', help='VGG, ResNet, InceptionV3')
     parser.add_argument('--saved_predictions', default=False, help='True if you wish to already predict on the test set and save it, False otherwise')
-    parser.add_argument('--class_weights', default=True, help='True if you wish to use class weights for a balanced classification, False otherwise')
+    parser.add_argument('--class_weights', default=False, help='True if you wish to use class weights for a balanced classification, False otherwise')
     parser.add_argument('--num_epochs', type=int, default=60)
     parser.add_argument('--batch_size', type=int, default=56)
-    parser.add_argument('--num_workers', type=int, default=1)
+    parser.add_argument('--num_workers', type=int, default=20)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     args = parser.parse_args()
     print(args)
