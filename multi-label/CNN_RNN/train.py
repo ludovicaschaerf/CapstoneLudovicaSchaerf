@@ -44,7 +44,7 @@ def main(args):
     idx2path_train = {}
     idx2path_test = {}
     for i,capt in enumerate(caption):
-        if i > 20000:
+        if i >= 20000:
             caption_test[capt] = caption[capt]
             idx2path_test[str(i-20000)] = idx2path[str(i)]
             continue
@@ -98,32 +98,32 @@ def main(args):
                           .format(epoch, args.num_epochs, i, total_step, loss.item(), np.exp(loss.item()))) 
                     
                 # Save the model checkpoints
-                if (i+1) % args.save_step == 0:
+                if (i+1) % args.save_step == 10:
                     torch.save(decoder.state_dict(), os.path.join(
                         args.model_path, 'decoder-{}-{}.ckpt'.format(epoch+1, i+1)))
                     torch.save(encoder.state_dict(), os.path.join(
                         args.model_path, 'encoder-{}-{}.ckpt'.format(epoch+1, i+1)))
     else:
         print(device)
-        encoder.load_state_dict(torch.load("../results/encoder-30-600.ckpt", map_location=torch.device(device)))
-        decoder.load_state_dict(torch.load("../results/decoder-30-600.ckpt", map_location=torch.device(device))) 
+        encoder.load_state_dict(torch.load("../results/encoder-59-610.ckpt", map_location=torch.device(device)))
+        decoder.load_state_dict(torch.load("../results/decoder-59-610.ckpt", map_location=torch.device(device))) 
 
-        dict_test = {}
-        for i, (images, captions, lengths, path) in enumerate(data_loader_test):
-                print(i)
-                # Set mini-batch dataset
-                images = images.to(device)
-                captions = captions.to(device)
-                targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+    dict_test = {}
+    for i, (images, captions, lengths, path) in enumerate(data_loader_test):
+        print(i)
+        # Set mini-batch dataset
+        images = images.to(device)
+        captions = captions.to(device)
+        targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
                 
-                # Forward, backward and optimize
-                features = encoder(images)
-                outputs = decoder(features, captions, lengths)
-                outputs = pack_padded_sequence(outputs, lengths, batch_first=True)[0]
-                dict_test[path[0]] = (outputs[0].detach().numpy(), targets[1].detach().numpy())
+        # Forward, backward and optimize
+        features = encoder(images)
+        outputs = decoder(features, captions, lengths)
+        outputs = pack_padded_sequence(outputs, lengths, batch_first=True)[0]
+        dict_test[path[0]] = (outputs.detach().to('cpu').numpy(), targets.detach().to('cpu').numpy())
         
-        with open('../results/predictions_CNN_RNN.pkl', 'wb') as outfile:
-            pickle.dump(dict_test, outfile)
+    with open('../results/predictions_CNN_RNN_vgg.pkl', 'wb') as outfile:
+        pickle.dump(dict_test, outfile)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -135,14 +135,14 @@ if __name__ == '__main__':
     parser.add_argument('--idx2path_path', type=str, default='../../data/results/idx2path.json', help='path for train idx2path json file')
     parser.add_argument('--log_step', type=int , default=10, help='step size for prining log info')
     parser.add_argument('--save_step', type=int , default=600, help='step size for saving trained models')
-    parser.add_argument('--resume_training' , default=False, help='to resume training')
+    parser.add_argument('--resume_training' , default=True, help='to resume training')
     
     # Model parameters
     parser.add_argument('--embed_size', type=int , default=512, help='dimension of word embedding vectors')
     parser.add_argument('--hidden_size', type=int , default=1024, help='dimension of lstm hidden states')
     parser.add_argument('--num_layers', type=int , default=1, help='number of layers in lstm')
     
-    parser.add_argument('--num_epochs', type=int, default=30)
+    parser.add_argument('--num_epochs', type=int, default=60)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=1)
     parser.add_argument('--learning_rate', type=float, default=0.001)
